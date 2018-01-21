@@ -11,6 +11,7 @@
 @interface FaceMaskViewController ()
 {
     UIImageView *imageView;
+    NSMutableArray *faceImageArray;
 }
 
 @end
@@ -20,7 +21,9 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    UIImage *originalImage = [UIImage imageNamed:@"test3"];
+    faceImageArray = [[NSMutableArray alloc] init];
+    
+    UIImage *originalImage = [UIImage imageNamed:@"test1"];
     CGFloat originalRatio = originalImage.size.height/originalImage.size.width;
     
     imageView = [[UIImageView alloc] initWithImage:originalImage];
@@ -29,6 +32,7 @@
     [self.view addSubview:imageView];
     
     [self detectFaceFeatures];
+    [self swapFaceImages];
 }
 
 - (void) detectFaceFeatures {
@@ -52,11 +56,35 @@
             modifiedRect.origin.y = modifiedRect.origin.y * (imageView.frame.size.height/originalRect.size.height);
             modifiedRect.origin.y = imageView.frame.size.height - (modifiedRect.origin.y+modifiedRect.size.height);
             
+            CGRect cropRect = face.bounds;
+            cropRect.origin.y =  originalRect.size.height - (cropRect.origin.y+cropRect.size.height);
+            CGImageRef imageRef = CGImageCreateWithImageInRect([imageView.image CGImage], cropRect);
+            UIImage *faceImage = [UIImage imageWithCGImage:imageRef];
+            CGImageRelease(imageRef);
             
-            CAShapeLayer *maskLayer = [[CAShapeLayer alloc] init];
-            maskLayer.path = CGPathCreateWithRect(modifiedRect, nil);
-            imageView.layer.mask = maskLayer;
+            UIImageView *faceImageView = [[UIImageView alloc] initWithFrame:modifiedRect];
+            faceImageView.image = faceImage;
+            
+            [faceImageArray addObject:faceImageView];
+    
         }
     }
+}
+
+- (void) swapFaceImages {
+    
+    if([faceImageArray count] >= 2) {
+        
+        UIImageView *firstFaceImageView = [faceImageArray objectAtIndex:0];
+        UIImageView *secondFaceImageView = [faceImageArray objectAtIndex:1];
+        
+        UIImage *tempImage = firstFaceImageView.image;
+        firstFaceImageView.image = secondFaceImageView.image;
+        secondFaceImageView.image = tempImage;
+        
+        [imageView addSubview:firstFaceImageView];
+        [imageView addSubview:secondFaceImageView];
+    }
+    
 }
 @end
